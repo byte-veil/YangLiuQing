@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解码杨柳青：年画的吉祥符号信息系统</title>
+    <style>
+        :root {
+            --red: #C3272B; --green: #3C8C6A; --yellow: #F2C94C;
+            --bg: #F9F6ED; --text: #2B2B2B; --border: #E0D8C8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "KaiTi", "STKaiti", "Microsoft YaHei", serif;
+            background-color: var(--bg); color: var(--text);
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* 顶部 */
+        header { text-align: center; padding: 15px; border-bottom: 2px solid var(--red); background: rgba(255,255,255,0.5); }
+        header h1 { font-size: 24px; color: var(--red); margin-bottom: 5px; }
+        header p { font-size: 13px; color: #666; }
+
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+
+        /* 左侧密码盘 */
+        .sidebar { width: 260px; background: #fff; border-right: 1px solid var(--border); padding: 15px; overflow-y: auto; }
+        .sidebar h2 { font-size: 18px; color: var(--green); margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed var(--border); }
+        .symbol-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .symbol-btn { padding: 8px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; text-align: center; font-size: 14px; transition: all 0.2s; }
+        .symbol-btn:hover { border-color: var(--yellow); }
+        .symbol-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+        .symbol-btn small { display: block; font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+        /* 右侧内容 */
+        .content { flex: 1; padding: 15px; overflow-y: auto; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .content-header h2 { font-size: 18px; color: var(--red); }
+        .reset-btn { background: none; border: 1px solid var(--red); color: var(--red); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+        
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s; position: relative; border: 2px solid transparent; }
+        .card:hover { transform: translateY(-3px); border-color: var(--yellow); }
+        .card img { width: 100%; height: 160px; object-fit: cover; border-bottom: 1px solid var(--border); }
+        .card-info { padding: 10px; }
+        .card-info h3 { font-size: 15px; margin-bottom: 5px; }
+        .card-info p { font-size: 12px; color: #666; }
+        .card-tag { position: absolute; top: 8px; right: 8px; background: rgba(195, 39, 43, 0.9); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+        /* 详情弹窗 (默认电脑端左右布局) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg); width: 80%; max-width: 800px; border-radius: 12px; display: flex; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: zoomIn 0.3s ease; max-height: 90vh;}
+        .modal-img { width: 50%; object-fit: contain; background: #fff; }
+        .modal-text { width: 50%; padding: 25px; position: relative; overflow-y: auto; }
+        .modal-text h2 { color: var(--red); margin-bottom: 10px; font-size: 22px; }
+        .modal-text p { margin-bottom: 8px; line-height: 1.5; font-size: 14px; }
+        .modal-text strong { color: var(--green); }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        .color-palette { display: flex; gap: 8px; margin-top: 10px; }
+        .color-box { width: 25px; height: 25px; border-radius: 50%; border: 1px solid #ccc; }
+
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* ⚠️ 手机端适配 (屏幕宽度小于 768px 时生效) */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .sidebar { width: 100%; height: 220px; border-right: none; border-bottom: 1px solid var(--border); padding: 10px; }
+            .symbol-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+            .symbol-btn { padding: 5px 2px; font-size: 12px; }
+            .content { padding: 10px; }
+            .gallery { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            
+            /* 手机端弹窗改为上下结构 */
+            .modal-content { flex-direction: column; width: 90%; max-height: 85vh; }
+            .modal-img { width: 100%; height: 250px; }
+            .modal-text { width: 100%; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <marquee>第一期数据库：收录25幅经典样本 · 提取28个吉祥符号 · 发现7种传统矿物/植物颜料</marquee>
+        <p>视觉符号 → 谐音 → 寓意 → 色彩配方</p>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <h2>视觉密码盘</h2>
+            <div class="symbol-grid" id="symbolGrid"></div>
+        </div>
+
+        <div class="content">
+            <div class="content-header">
+                <h2 id="galleryTitle">全部画卷 (25幅)</h2>
+                <button class="reset-btn" onclick="resetFilter()">重置</button>
+            </div>
+            <div class="gallery" id="gallery"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="detailModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img src="" id="modalImg" class="modal-img" alt="年画">
+            <div class="modal-text">
+                <span class="close-btn" onclick="document.getElementById('detailModal').style.display='none'">&times;</span>
+                <h2 id="modalTitle">年画名称</h2>
+                <p><strong>年代题材：</strong> <span id="modalEra"></span></p>
+                <p><strong>符号解码：</strong> <span id="modalSymbols"></span></p>
+                <p><strong>组合寓意：</strong> <span style="color: var(--red); font-weight: bold;" id="modalMeaning"></span></p>
+                <p><strong>画面备注：</strong> <span id="modalNote"></span></p>
+                                <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    <p style="font-size: 13px; color: #666; margin-bottom: 8px;">提取调色盘（点击查看颜料物质属性）：</p>
+                    <div class="color-palette" id="modalColors"></div>
+                    
+                    <!-- 新增的颜色详情面板（初始隐藏） -->
+                    <div id="colorDetail" style="display: none; margin-top: 10px; background: #fff; border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.6;">
+                        <div style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                            <strong style="font-size: 15px; color: var(--red);" id="cName"></strong> 
+                            <span style="color: var(--green); font-size: 12px; margin-left: 10px;" id="cCategory"></span>
+                        </div>
+                        <div><span style="color: #666;">化学/色素成分：</span> <span id="cFormula"></span></div>
+                        <div style="margin-top: 5px;"><span style="color: #666;">物质来源：</span> <span id="cSource"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const colorDatabase = {
+            "#C3272B": { name: "朱砂", category: "矿物", formula: "HgS（硫化汞）", source: "天然辰砂矿石，主产于湖南、贵州、四川等地。色泽沉稳，经久不褪。" },
+            "#2E5C8A": { name: "石青", category: "矿物", formula: "Cu₃(CO₃)₂(OH)₂（碱式碳酸铜）", source: "天然蓝铜矿，常与孔雀石共生于铜矿床氧化带。" },
+            "#3C8C6A": { name: "石绿", category: "矿物", formula: "Cu₂CO₃(OH)₂（碱式碳酸铜）", source: "天然孔雀石，晶体结构区别于石青，常用于青绿山水。" },
+            "#F2C94C": { name: "藤黄", category: "植物", formula: "藤黄酸等树脂成分", source: "藤黄科植物（如海藤树）树干割取的树脂，有毒。" },
+            "#F7F3E8": { name: "铅粉", category: "人工", formula: "2PbCO₃·Pb(OH)₂（碱式碳酸铅）", source: "古代以铅为原料经化学方法人工合成，常用于人物开脸，有毒。" },
+            "#B03060": { name: "胭脂", category: "植物", formula: "红花素 (Carthamin)", source: "红蓝花（红花）花瓣，经淘洗去除黄色素后制得。" },
+            "#2B2B2B": { name: "墨", category: "人工/植物", formula: "C（碳）", source: "松木或油脂不完全燃烧收集的烟炱，配以动物胶制成。" }
+        };
+        const paintings = [
+            { id: "YLQ-001", name: "金生丽水", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A13","C06","C07"], meaning: "财源广进、金生丽水", note: "娃娃、马、元宝、聚宝盆", colors: ["#C3272B", "#2E5C8A", "#F2C94C"] },
+            { id: "YLQ-002", name: "鱼龙变化", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A01","A08"], meaning: "科举高中、平步青云", note: "娃娃抱大鱼，上方有龙", colors: ["#C3272B", "#3C8C6A", "#F2C94C"] },
+            { id: "YLQ-003", name: "鸿福临门", era: "民国", type: "吉祥娃娃类", symbols: ["D01","A02","C05"], meaning: "福气临门", note: "娃娃、红蝙蝠、铜钱", colors: ["#C3272B", "#F2C94C", "#F7F3E8"] },
+            { id: "YLQ-004", name: "双美游春", era: "清代", type: "仕女类", symbols: ["D09"], meaning: "美好富贵、平安喜乐", note: "两位仕女配剑，无具体谐音符号", colors: ["#2E5C8A", "#B03060", "#F7F3E8"] },
+            { id: "YLQ-005", name: "子孙万代", era: "清代", type: "吉祥娃娃类", symbols: ["D01","B09","B08"], meaning: "福禄万代、多子多孙", note: "娃娃抱大葫芦，有石榴", colors: ["#3C8C6A", "#F2C94C", "#C3272B"] },
+            { id: "YLQ-006", name: "多子多福", era: "清代", type: "吉祥娃娃类", symbols: ["D01","B08","B06"], meaning: "多子多福、长寿", note: "娃娃吃西瓜，篮子里有石榴、桃", colors: ["#C3272B", "#3C8C6A", "#2B2B2B"] },
+            { id: "YLQ-007", name: "采莲图", era: "清代", type: "吉祥娃娃类", symbols: ["D01","B01","C12"], meaning: "连生贵子", note: "娃娃坐木盆采莲花", colors: ["#3C8C6A", "#C3272B", "#F2C94C"] },
+            { id: "YLQ-008", name: "三星高照", era: "清代", type: "神仙人物类", symbols: ["D01","D02","D03","D04"], meaning: "三星高照、福禄寿", note: "福星、禄星、寿星及五个童子", colors: ["#C3272B", "#2E5C8A", "#F2C94C"] },
+            { id: "YLQ-009", name: "福寿三多", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A02","A04","B06","B08"], meaning: "福寿双全、多子", note: "娃娃卧芭蕉叶，有蝙蝠、仙鹤、桃", colors: ["#C3272B", "#3C8C6A", "#F7F3E8"] },
+            { id: "YLQ-010", name: "富贵连生", era: "民国", type: "吉祥娃娃类", symbols: ["D01","B02","B01","B15"], meaning: "富贵连生、长寿", note: "娃娃拿花，旁有牡丹、莲花、菊花", colors: ["#2E5C8A", "#B03060", "#F2C94C"] },
+            { id: "YLQ-011", name: "富贵如意", era: "民国", type: "吉祥娃娃类", symbols: ["D01","A13","B02","B11","C01"], meaning: "马上如意、富贵", note: "两娃娃骑木马，持柿子、牡丹", colors: ["#C3272B", "#F2C94C", "#3C8C6A"] },
+            { id: "YLQ-012", name: "吉祥好运", era: "现代", type: "吉祥娃娃类", symbols: ["D01","C06","C12","C07"], meaning: "招财进宝、好运来", note: "娃娃与拟人化的猪，有聚宝盆", colors: ["#C3272B", "#F2C94C", "#2B2B2B"] },
+            { id: "YLQ-013", name: "事事大吉", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A20","B11"], meaning: "事事大吉", note: "娃娃戏锦鸡，手拿柿子", colors: ["#C3272B", "#3C8C6A", "#F2C94C"] },
+            { id: "YLQ-014", name: "童子卧莲", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A01","B01"], meaning: "连年有余", note: "娃娃卧莲叶，抱大红鲤鱼", colors: ["#C3272B", "#3C8C6A", "#F7F3E8"] },
+            { id: "YLQ-015", name: "莲年有余", era: "民国", type: "吉祥娃娃类", symbols: ["D01","A01","B01"], meaning: "连年有余", note: "娃娃抱鲤鱼，上方有题字", colors: ["#C3272B", "#3C8C6A", "#F7F3E8"] },
+            { id: "YLQ-016", name: "刘海戏金蟾", era: "清代", type: "吉祥娃娃类", symbols: ["D01","C05","B01","A01"], meaning: "金玉满堂、连年有余", note: "童子骑金蟾，拿铜钱，有莲花", colors: ["#3C8C6A", "#C3272B", "#F2C94C"] },
+            { id: "YLQ-017", name: "武门神", era: "清代", type: "门画类", symbols: ["D06","E03"], meaning: "镇宅驱邪", note: "一对门神，身披铠甲", colors: ["#2E5C8A", "#C3272B", "#F2C94C"] },
+            { id: "YLQ-018", name: "年年有余", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A08","A01","E02"], meaning: "年年有余、鱼龙变化", note: "娃娃骑龙，手托年年有余牌", colors: ["#C3272B", "#3C8C6A", "#2E5C8A"] },
+            { id: "YLQ-019", name: "事事如意", era: "清代", type: "吉祥娃娃类", symbols: ["D01","B11","C01","A02"], meaning: "事事如意、福气", note: "三娃娃拿柿子、如意、扇子", colors: ["#C3272B", "#F2C94C", "#3C8C6A"] },
+            { id: "YLQ-020", name: "寿星图", era: "民国", type: "神仙人物类", symbols: ["D02","B06"], meaning: "寿比南山", note: "寿星老拿大仙桃、拐杖", colors: ["#C3272B", "#F2C94C", "#F7F3E8"] },
+            { id: "YLQ-021", name: "麒麟送子", era: "清代", type: "神话故事类", symbols: ["D01","A07","D09"], meaning: "麒麟送子、早生贵子", note: "童子骑麒麟，有仕女打伞", colors: ["#2E5C8A", "#C3272B", "#F2C94C"] },
+            { id: "YLQ-022", name: "童子戏春", era: "清代", type: "吉祥娃娃类", symbols: ["D01","B15","B01","C12"], meaning: "安居乐业、吉庆", note: "娃娃吹唢呐、逗蝴蝶、有菊花", colors: ["#3C8C6A", "#C3272B", "#F2C94C"] },
+            { id: "YLQ-023", name: "童子抚琴", era: "清代", type: "吉祥娃娃类", symbols: ["D01","C02"], meaning: "琴瑟和鸣、喜乐", note: "娃娃弹拨乐器，旁有花瓶", colors: ["#2E5C8A", "#C3272B", "#F7F3E8"] },
+            { id: "YLQ-024", name: "竹报平安", era: "民国", type: "吉祥娃娃类", symbols: ["D01","B05","C06","A01"], meaning: "竹报平安、招财进宝", note: "娃娃、爆竹、猪、鱼、元宝", colors: ["#C3272B", "#3C8C6A", "#F2C94C"] },
+            { id: "YLQ-025", name: "连年有余(经典)", era: "清代", type: "吉祥娃娃类", symbols: ["D01","A01","B01"], meaning: "连年有余", note: "经典娃娃抱鲤鱼卧莲图", colors: ["#C3272B", "#3C8C6A", "#F7F3E8"] }
+        ];
+
+        // 修复了 A04 鹤 的显示
+        const symbolDict = {
+            "A01": "鱼 (余)", "A02": "蝙蝠 (福)", "A04": "仙鹤 (贺)", "A07": "麒麟", 
+            "A08": "龙", "A13": "马", "A20": "锦鸡 (吉)", "B01": "莲花 (连)", 
+            "B02": "牡丹 (富贵)", "B05": "竹 (祝)", "B06": "桃 (寿)", 
+            "B08": "石榴 (多子)", "B09": "葫芦 (福禄)", "B11": "柿子 (事)",
+            "B15": "菊花 (居/寿)", "C01": "如意", "C02": "花瓶 (平)", "C05": "铜钱",
+            "C06": "元宝", "C07": "聚宝盆", "C12": "灯笼", "D01": "胖娃娃",
+            "D02": "寿星", "D03": "福星", "D04": "禄星", "D06": "门神", "D09": "仕女",
+            "E02": "祥云", "E03": "海水江崖"
+        };
+
+        const symbolGrid = document.getElementById('symbolGrid');
+        const allSymbols = [...new Set(paintings.flatMap(p => p.symbols))].sort();
+
+        allSymbols.forEach(sym => {
+            const btn = document.createElement('div');
+            btn.className = 'symbol-btn';
+            btn.dataset.sym = sym;
+            btn.innerHTML = `${symbolDict[sym] || sym} <small>${sym}</small>`;
+            btn.onclick = () => filterBySymbol(sym);
+            symbolGrid.appendChild(btn);
+        });
+
+        const gallery = document.getElementById('gallery');
+        const galleryTitle = document.getElementById('galleryTitle');
+
+        function renderGallery(data) {
+            gallery.innerHTML = '';
+            if(data.length === 0) {
+                gallery.innerHTML = '<p style="text-align:center; width:100%; color:#999; margin-top:20px;">没有找到包含该符号的年画</p>';
+                return;
+            }
+            data.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => showDetail(p);
+                // 确保路径以 .jpg 结尾，大小写一致
+                card.innerHTML = `
+                    <img src="images/${p.id}.jpg" alt="${p.name}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'160\\'><rect width=\\'100\\' height=\\'160\\' fill=\\'%23eee\\'/><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23999\\' font-size=\\'12\\' text-anchor=\\'middle\\' dy=\\'.3em\\'>${p.id}.jpg 缺失</text></svg>'">
+                    <div class="card-tag">${p.id}</div>
+                    <div class="card-info">
+                        <h3>${p.name}</h3>
+                        <p>${p.meaning}</p>
+                    </div>
+                `;
+                gallery.appendChild(card);
+            });
+        }
+
+        renderGallery(paintings);
+
+        function filterBySymbol(sym) {
+            document.querySelectorAll('.symbol-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.sym === sym);
+            });
+            const filtered = paintings.filter(p => p.symbols.includes(sym));
+            galleryTitle.innerText = `${symbolDict[sym] || sym} 相关画卷 (${filtered.length}幅)`;
+            renderGallery(filtered);
+        }
+
+        function resetFilter() {
+            document.querySelectorAll('.symbol-btn').forEach(btn => btn.classList.remove('active'));
+            galleryTitle.innerText = `全部画卷 (${paintings.length}幅)`;
+            renderGallery(paintings);
+        }
+
+        const modal = document.getElementById('detailModal');
+        
+        function showDetail(p) {
+            document.getElementById('modalImg').src = `images/${p.id}.jpg`;
+            document.getElementById('modalImg').onerror = function() {
+                this.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="%23eee"/><text x="50%" y="50%" fill="%23999" font-size="20" text-anchor="middle" dy=".3em">图片未找到，请检查 images 文件夹</text></svg>';
+            };
+            document.getElementById('modalTitle').innerText = p.name;
+            document.getElementById('modalEra').innerText = `${p.era} · ${p.type}`;
+            
+            const symbolText = p.symbols.map(s => symbolDict[s] || s).join('、');
+            document.getElementById('modalSymbols').innerText = symbolText;
+            document.getElementById('modalMeaning').innerText = p.meaning;
+            document.getElementById('modalNote').innerText = p.note;
+
+            const colorBox = document.getElementById('modalColors');
+            colorBox.innerHTML = '';
+            const colorDetail = document.getElementById('colorDetail');
+            colorDetail.style.display = 'none'; // 重置隐藏
+
+            p.colors.forEach((hex, index) => {
+                const div = document.createElement('div');
+                div.className = 'color-box';
+                div.style.backgroundColor = hex;
+                div.style.cursor = 'pointer';
+                
+                // 从数据库中查询该颜色的信息
+                const info = colorDatabase[hex] || { name: "未知色", category: "-", formula: "-", source: "暂无资料" };
+                div.title = info.name;
+
+                // 点击事件：显示详情
+                div.onclick = () => {
+                    // 视觉反馈：移除其他色块的黑边，给当前加黑边
+                    colorBox.querySelectorAll('.color-box').forEach(box => box.style.border = '1px solid #ccc');
+                    div.style.border = '2px solid #2B2B2B';
+                    
+                    // 填充数据并展示
+                    colorDetail.style.display = 'block';
+                    document.getElementById('cName').innerText = info.name;
+                    document.getElementById('cCategory').innerText = info.category;
+                    document.getElementById('cFormula').innerText = info.formula;
+                    document.getElementById('cSource').innerText = info.source;
+                };
+
+                colorBox.appendChild(div);
+                
+                // 默认选中第一个色块并显示详情
+                if(index === 0) {
+                    setTimeout(() => div.click(), 50); // 稍微延迟确保 DOM 已渲染
+                }
+            });
+            modal.style.display = 'flex';
+        }
+
+        function closeModal(e) {
+            if(e.target.id === 'detailModal') {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
